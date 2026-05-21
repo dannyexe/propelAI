@@ -4,132 +4,209 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>PropelAI — Freelance Proposal Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
-<!-- PAYWALL MODAL -->
-<div id="paywall-modal" class="modal-overlay hidden">
-  <div class="modal-box">
-    <h2>You've used your 3 free proposals</h2>
-    <p>Upgrade to PropelAI Pro for unlimited proposals and priority generation.</p>
-    <div class="modal-price">$9 <span>/month</span></div>
-    <ul class="modal-features">
-      <li>✅ Unlimited proposals</li>
-      <li>✅ All tone styles</li>
-      <li>✅ AI coaching tips</li>
-      <li>✅ Export to PDF (coming soon)</li>
-    </ul>
-    <button class="btn-primary" onclick="upgradeNow()">Upgrade to Pro →</button>
-    <button class="btn-ghost" onclick="hidePaywall()">Maybe later</button>
-  </div>
-</div>
-
-<!-- APP SHELL -->
-<div class="app">
+  <!-- GRAIN OVERLAY -->
+  <div class="grain"></div>
 
   <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="logo">⚡ PropelAI</div>
-    <div id="usage-badge" class="usage-badge">3 free proposals left</div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">PropelAI</span>
+      <span class="logo-sub">Proposal Generator</span>
+    </div>
 
-    <nav class="nav">
-      <button class="nav-btn active" data-section="generator">🚀 Generator</button>
-      <button class="nav-btn" data-section="profile">👤 My Profile</button>
-      <button class="nav-btn" data-section="account">💳 Account</button>
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-view="generator" onclick="switchView('generator', this)">
+        <span class="nav-icon">⚡</span> Generator
+      </button>
+      <button class="nav-btn" data-view="profile" onclick="switchView('profile', this)">
+        <span class="nav-icon">👤</span> My Profile
+      </button>
+      <button class="nav-btn" data-view="account" onclick="switchView('account', this)">
+        <span class="nav-icon">💳</span> Account
+      </button>
     </nav>
+
+    <div class="sidebar-footer">
+      <div class="usage-badge" id="usageBadge">
+        <span id="usageCount">0</span> proposals generated
+      </div>
+    </div>
   </aside>
 
-  <!-- MAIN -->
+  <!-- MAIN CONTENT -->
   <main class="main">
 
-    <!-- GENERATOR SECTION -->
-    <section id="section-generator" class="section">
-      <h1>Generate a Proposal</h1>
-      <p class="subtitle">Paste a job posting and get a tailored proposal in seconds.</p>
+    <!-- ── VIEW: GENERATOR ── -->
+    <section class="view active" id="view-generator">
+      <header class="view-header">
+        <h1>Generate a Proposal</h1>
+        <p class="sub">Paste a job posting. Get a winning proposal in seconds.</p>
+      </header>
 
-      <!-- Tone Selector -->
-      <div class="tone-row">
-        <span class="tone-label">Tone:</span>
-        <button class="tone-btn active" data-tone="Professional">Professional</button>
-        <button class="tone-btn" data-tone="Friendly">Friendly</button>
-        <button class="tone-btn" data-tone="Confident">Confident</button>
-        <button class="tone-btn" data-tone="Concise">Concise</button>
-        <button class="tone-btn" data-tone="Formal">Formal</button>
-        <button class="tone-btn" data-tone="Creative">Creative</button>
+      <!-- Profile Warning -->
+      <div class="alert" id="profileAlert" style="display:none;">
+        ⚠️ Your profile is incomplete. <a href="#" onclick="switchView('profile', null)">Fill it in</a> for personalized proposals.
       </div>
 
-      <!-- Job Input -->
-      <textarea id="job-posting" placeholder="Paste the job description here..." rows="10"></textarea>
+      <div class="generator-grid">
 
-      <button id="generate-btn" class="btn-primary" onclick="generateProposal()">✨ Generate Proposal</button>
+        <!-- LEFT: INPUTS -->
+        <div class="input-panel">
+          <label class="field-label">Job Posting</label>
+          <textarea id="jobPosting" class="textarea" placeholder="Paste the full job description here...&#10;&#10;e.g. 'Looking for a React developer to build a dashboard...'"></textarea>
 
-      <!-- Output -->
-      <div id="output-section" class="hidden">
-        <div class="output-header">
-          <h2>Your Proposal</h2>
-          <div class="output-actions">
-            <button id="copy-btn" class="btn-ghost" onclick="copyProposal()">📋 Copy</button>
-            <button class="btn-ghost" onclick="exportProposal()">💾 Export</button>
-            <button class="btn-ghost" onclick="generateProposal(true)">🔄 Regenerate</button>
+          <label class="field-label">Proposal Tone</label>
+          <div class="tone-grid">
+            <button class="tone-btn active" data-tone="Professional">Professional</button>
+            <button class="tone-btn" data-tone="Friendly">Friendly</button>
+            <button class="tone-btn" data-tone="Bold & Direct">Bold</button>
+            <button class="tone-btn" data-tone="Formal">Formal</button>
+            <button class="tone-btn" data-tone="Conversational">Casual</button>
+            <button class="tone-btn" data-tone="Enthusiastic">Enthusiastic</button>
+          </div>
+
+          <button class="btn-primary" id="generateBtn" onclick="generateProposal()">
+            <span class="btn-text">Generate Proposal</span>
+            <span class="btn-icon">→</span>
+          </button>
+        </div>
+
+        <!-- RIGHT: OUTPUT -->
+        <div class="output-panel">
+          <div class="output-header">
+            <label class="field-label">Your Proposal</label>
+            <div class="output-actions" id="outputActions" style="display:none;">
+              <button class="btn-sm" onclick="regenerate()">↺ Regenerate</button>
+              <button class="btn-sm" onclick="copyProposal()">⧉ Copy</button>
+              <button class="btn-sm" onclick="exportTxt()">↓ Export</button>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon">✦</div>
+            <p>Your generated proposal will appear here.</p>
+          </div>
+
+          <!-- Loading State -->
+          <div class="loading-state" id="loadingState" style="display:none;">
+            <div class="loader"></div>
+            <p>Crafting your proposal...</p>
+          </div>
+
+          <!-- Proposal Output -->
+          <div class="proposal-output" id="proposalOutput" style="display:none;">
+            <div class="proposal-text" id="proposalText" contenteditable="true"></div>
+          </div>
+
+          <!-- Tip Box -->
+          <div class="tip-box" id="tipBox" style="display:none;">
+            <span class="tip-label">💡 AI Tip</span>
+            <span class="tip-text" id="tipText"></span>
           </div>
         </div>
-        <div id="proposal-text" class="proposal-box"></div>
-        <div id="tip-box" class="tip-box hidden">
-          💡 <strong>AI Tip:</strong> <span id="tip-text"></span>
-        </div>
+
       </div>
     </section>
 
-    <!-- PROFILE SECTION -->
-    <section id="section-profile" class="section hidden">
-      <h1>My Profile</h1>
-      <p class="subtitle">This context is used to personalize every proposal.</p>
+    <!-- ── VIEW: PROFILE ── -->
+    <section class="view" id="view-profile">
+      <header class="view-header">
+        <h1>My Profile</h1>
+        <p class="sub">This info is used to personalize every proposal you generate.</p>
+      </header>
 
-      <div class="form-group">
-        <label>Full Name</label>
-        <input id="profile-name" type="text" placeholder="e.g. Daniel Muthomi" />
+      <div class="form-card">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="field-label">Full Name</label>
+            <input type="text" id="p-name" class="input" placeholder="e.g. Alex Johnson" />
+          </div>
+          <div class="form-group">
+            <label class="field-label">Niche / Industry</label>
+            <input type="text" id="p-niche" class="input" placeholder="e.g. Web Development, Copywriting" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="field-label">Top Skills <span class="hint">(comma separated)</span></label>
+          <input type="text" id="p-skills" class="input" placeholder="e.g. React, Node.js, Figma, SEO" />
+        </div>
+
+        <div class="form-group">
+          <label class="field-label">Experience Summary</label>
+          <textarea id="p-experience" class="textarea short" placeholder="Brief summary of your background and what you've built or achieved..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="field-label">Preferred Tone <span class="hint">(default for all proposals)</span></label>
+          <select id="p-tone" class="input">
+            <option>Professional</option>
+            <option>Friendly</option>
+            <option>Bold & Direct</option>
+            <option>Formal</option>
+            <option>Conversational</option>
+            <option>Enthusiastic</option>
+          </select>
+        </div>
+
+        <button class="btn-primary slim" onclick="saveProfile()">Save Profile</button>
+        <span class="save-confirm" id="saveConfirm">✓ Saved!</span>
       </div>
-      <div class="form-group">
-        <label>Key Skills</label>
-        <input id="profile-skills" type="text" placeholder="e.g. React, Node.js, UI Design" />
-      </div>
-      <div class="form-group">
-        <label>Experience Summary</label>
-        <textarea id="profile-experience" rows="4" placeholder="Brief summary of your background..."></textarea>
-      </div>
-      <div class="form-group">
-        <label>Niche / Industry</label>
-        <input id="profile-niche" type="text" placeholder="e.g. SaaS, E-commerce, Healthcare" />
-      </div>
-      <button class="btn-primary save-profile-btn" onclick="saveProfile()">Save Profile</button>
     </section>
 
-    <!-- ACCOUNT SECTION -->
-    <section id="section-account" class="section hidden">
-      <h1>Account</h1>
-      <p class="subtitle">Enter your email to verify Pro status after upgrading.</p>
+    <!-- ── VIEW: ACCOUNT ── -->
+    <section class="view" id="view-account">
+      <header class="view-header">
+        <h1>Account</h1>
+        <p class="sub">Enter the email you used when upgrading to verify your Pro status.</p>
+      </header>
 
-      <div class="form-group">
-        <label>Email Address</label>
-        <div class="email-row">
-          <input id="user-email" type="email" placeholder="you@example.com" />
-          <button id="save-email-btn" class="btn-primary" onclick="saveEmail()">Save</button>
+      <div class="form-card narrow">
+        <div class="form-group">
+          <label class="field-label">Email Address</label>
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            <input type="email" id="account-email" class="input" placeholder="you@example.com" style="margin-bottom:0; flex:1;" />
+            <button class="btn-primary slim" onclick="saveEmail()" style="white-space:nowrap; margin-top:0;">Verify</button>
+          </div>
+          <p class="hint-block" style="margin-top:8px;">Use the same email from your Lemon Squeezy purchase.</p>
+          <span class="save-confirm" id="emailConfirm">✓ Status updated!</span>
         </div>
-        <p class="hint">Use the same email you used when upgrading to Pro.</p>
-      </div>
 
-      <div class="upgrade-card">
-        <h3>PropelAI Pro</h3>
-        <p>Unlimited proposals, all tones, AI coaching tips.</p>
-        <div class="modal-price">$9 <span>/month</span></div>
-        <button class="btn-primary" onclick="upgradeNow()">Upgrade to Pro →</button>
+        <div style="border-top: 1px solid var(--border); padding-top: 24px; margin-top: 8px;">
+          <label class="field-label">Current Plan</label>
+          <p id="plan-status" style="font-size:13px; color:var(--muted); margin-bottom:16px;">Checking...</p>
+          <a class="btn-upgrade" id="accountUpgradeLink" href="#" target="_blank">Upgrade to Pro — $9/mo →</a>
+        </div>
       </div>
     </section>
 
   </main>
-</div>
 
-<script src="js/app.js"></script>
+  <!-- PAYWALL MODAL -->
+  <div class="modal-overlay" id="paywallModal">
+    <div class="modal">
+      <div class="modal-badge">Free limit reached</div>
+      <h2 class="modal-title">You've used your 3 free proposals</h2>
+      <p class="modal-sub">Upgrade to PropelAI Pro for unlimited proposals and faster results.</p>
+      <div class="modal-price"><span class="price">$9</span><span class="price-period">/ month</span></div>
+      <ul class="modal-features">
+        <li>✦ Unlimited proposal generation</li>
+        <li>✦ All 6 tone styles</li>
+        <li>✦ AI coaching tips</li>
+        <li>✦ Copy &amp; export tools</li>
+      </ul>
+      <a class="btn-upgrade" id="stripeLink" href="#" target="_blank">Upgrade to Pro →</a>
+      <button class="btn-modal-close" onclick="closePaywall()">Maybe later</button>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
 </body>
 </html>

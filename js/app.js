@@ -1,29 +1,103 @@
-// ── CONFIG ─────────────────────────────────────────────────────────
-const LEMONSQUEEZY_LINK = 'https://buy.stripe.com/your_link_here'; // Replace with your Lemon Squeezy link
-const FREE_LIMIT = 3;
-
 // ── STATE ──────────────────────────────────────────────────────────
 let selectedTone = 'Professional';
 let lastJobPosting = '';
 let proposalCount = parseInt(localStorage.getItem('propelai_count') || '0');
+const FREE_LIMIT = 3;
+const LEMONSQUEEZY_LINK = 'https://buy.stripe.com/your_link_here'; // ⚠️ Replace with your Lemon Squeezy link
 let userEmail = localStorage.getItem('propelai_email') || '';
 let isProUser = localStorage.getItem('propelai_pro') === 'true';
 
 // ── INIT ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadProfile();
-  updateUsageDisplay();
-  setupToneButtons();
-  setupNavigation();
+  updateUsageBadge();
+  checkProfileAlert();
 
   if (userEmail) {
-    document.getElementById('user-email').value = userEmail;
-    verifyProStatus(userEmail);
+    const emailInput = document.getElementById('account-email');
+    if (emailInput) emailInput.value = userEmail;
+    verifyProStatus(userEmail, false);
   }
+  updatePlanStatus();
+  const upgradeLink = document.getElementById('accountUpgradeLink');
+  if (upgradeLink) upgradeLink.href = LEMONSQUEEZY_LINK;
+
+  document.querySelectorAll('.tone-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedTone = btn.dataset.tone;
+    });
+  });
 });
 
-// ── PRO STATUS ─────────────────────────────────────────────────────
-async function verifyProStatus(email) {
+// ── NAVIGATION ────────────────────────────────────────────────────
+function switchView(viewId, btnEl) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  document.getElementById(`view-${viewId}`).classList.add('active');
+  if (btnEl) btnEl.classList.add('active');
+  else {
+    const match = document.querySelector(`[data-view="${viewId}"]`);
+    if (match) match.classList.add('active');
+  }
+}
+
+// ── PROFILE ───────────────────────────────────────────────────────
+function saveProfile() {
+  const profile = {
+    name:       document.getElementById('p-name').value.trim(),
+    niche:      document.getElementById('p-niche').value.trim(),
+    skills:     document.getElementById('p-skills').value.trim(),
+    experience: document.getElementById('p-experience').value.trim(),
+    tone:       document.getElementById('p-tone').value,
+  };
+  localStorage.setItem('propelai_profile', JSON.stringify(profile));
+  flashConfirm('saveConfirm');
+  checkProfileAlert();
+}
+
+function loadProfile() {
+  const saved = localStorage.getItem('propelai_profile');
+  if (!saved) return;
+  const p = JSON.parse(saved);
+  document.getElementById('p-name').value       = p.name       || '';
+  document.getElementById('p-niche').value      = p.niche      || '';
+  document.getElementById('p-skills').value     = p.skills     || '';
+  document.getElementById('p-experience').value = p.experience || '';
+  document.getElementById('p-tone').value       = p.tone       || 'Professional';
+}
+
+function getProfile() {
+  const saved = localStorage.getItem('propelai_profile');
+  return saved ? JSON.parse(saved) : null;
+}
+
+function checkProfileAlert() {
+  const p = getProfile();
+  const alert = document.getElementById('profileAlert');
+  if (!p || !p.name || !p.skills) {
+    alert.style.display = 'block';
+  } else {
+    alert.style.display = 'none';
+  }
+}
+
+// ── EMAIL & PRO VERIFICATION ──────────────────────────────────────
+async function saveEmail() {
+  const emailInput = document.getElementById('account-email');
+  const email = emailInput.value.trim();
+  if (!email || !email.includes('@')) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+  userEmail = email;
+  localStorage.setItem('propelai_email', email);
+  await verifyProStatus(email, true);
+}
+
+async function verifyProStatus(email, showConfirm) {
   try {
     const res = await fetch('/api/check-pro', {
       method: 'POST',
@@ -33,138 +107,31 @@ async function verifyProStatus(email) {
     const data = await res.json();
     isProUser = data.isPro;
     localStorage.setItem('propelai_pro', isProUser ? 'true' : 'false');
-    updateUsageDisplay();
+    updateUsageBadge();
+    updatePlanStatus();
+    if (showConfirm) flashConfirm('emailConfirm');
   } catch (e) {
     console.error('Could not verify pro status:', e);
   }
 }
 
-function isPro() {
-  return isProUser;
+function updatePlanStatus() {
+  const el = document.getElementById('plan-status');
+  if (!el) return;
+  el.textContent = isProUser
+    ? '✦ Pro — Unlimited proposals'
+    : `Free — ${Math.max(0, FREE_LIMIT - proposalCount)} proposals remaining`;
+  el.style.color = isProUser ? 'var(--accent)' : 'var(--muted)';
 }
 
-// ── USAGE DISPLAY ──────────────────────────────────────────────────
-function updateUsageDisplay() {
-  const badge = document.getElementById('usage-badge');
-  if (!badge) return;
-  if (isPro()) {
-    badge.textContent = '✨ Pro — Unlimited';
-    badge.style.color = '#f59e0b';
-  } else {
-    const remaining = Math.max(0, FREE_LIMIT - proposalCount);
-    badge.textContent = `${remaining} free proposal${remaining !== 1 ? 's' : ''} left`;
-    badge.style.color = remaining === 0 ? '#ef4444' : '#94a3b8';
-  }
-}
+// ── PROPOSAL GENERATION ───────────────────────────────────────────
+async function generateProposal() {
+  const jobPosting = document.getElementById('jobPosting').value.trim();
 
-// ── PAYWALL ────────────────────────────────────────────────────────
-function showPaywall() {
-  document.getElementById('paywall-modal').classList.remove('hidden');
-}
-
-function hidePaywall() {
-  document.getElementById('paywall-modal').classList.add('hidden');
-}
-
-function upgradeNow() {
-  window.open(LEMONSQUEEZY_LINK, '_blank');
-  hidePaywall();
-}
-
-// ── EMAIL HANDLING ─────────────────────────────────────────────────
-async function saveEmail() {
-  const emailInput = document.getElementById('user-email');
-  const email = emailInput.value.trim();
-  if (!email || !email.includes('@')) {
-    alert('Please enter a valid email address.');
+  if (!jobPosting) {
+    alert('Please paste a job posting first.');
     return;
   }
-  userEmail = email;
-  localStorage.setItem('propelai_email', email);
-  await verifyProStatus(email);
-
-  const btn = document.getElementById('save-email-btn');
-  btn.textContent = isPro() ? '✨ Pro Verified!' : '✅ Saved';
-  setTimeout(() => btn.textContent = 'Save', 2000);
-}
-
-// ── PROFILE ────────────────────────────────────────────────────────
-function saveProfile() {
-  const profile = {
-    name: document.getElementById('profile-name').value,
-    skills: document.getElementById('profile-skills').value,
-    experience: document.getElementById('profile-experience').value,
-    niche: document.getElementById('profile-niche').value,
-  };
-  localStorage.setItem('propelai_profile', JSON.stringify(profile));
-  const btn = document.querySelector('.save-profile-btn');
-  if (btn) { btn.textContent = '✅ Saved!'; setTimeout(() => btn.textContent = 'Save Profile', 2000); }
-}
-
-function loadProfile() {
-  const profile = JSON.parse(localStorage.getItem('propelai_profile') || '{}');
-  if (profile.name) document.getElementById('profile-name').value = profile.name;
-  if (profile.skills) document.getElementById('profile-skills').value = profile.skills;
-  if (profile.experience) document.getElementById('profile-experience').value = profile.experience;
-  if (profile.niche) document.getElementById('profile-niche').value = profile.niche;
-}
-
-function getProfile() {
-  return JSON.parse(localStorage.getItem('propelai_profile') || '{}');
-}
-
-// ── TONE BUTTONS ───────────────────────────────────────────────────
-function setupToneButtons() {
-  document.querySelectorAll('.tone-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedTone = btn.dataset.tone;
-    });
-  });
-}
-
-// ── NAVIGATION ─────────────────────────────────────────────────────
-function setupNavigation() {
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-      btn.classList.add('active');
-      const target = btn.dataset.section;
-      document.getElementById(`section-${target}`)?.classList.remove('hidden');
-    });
-  });
-}
-
-// ── MARKDOWN RENDERER ──────────────────────────────────────────────
-function renderMarkdown(text) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/^\d+\.\s(.+)/gim, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ol>$1</ol>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^(?!<[hol])/gm, '')
-    .replace(/(.+?)(?=<\/?[hol]|$)/gs, (m) => m.trim() ? `<p>${m.trim()}</p>` : '');
-}
-
-function stripMarkdown(text) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/\*(.*?)\*/g, '$1')
-    .replace(/^#{1,3} /gm, '')
-    .replace(/^\d+\. /gm, '')
-    .trim();
-}
-
-// ── GENERATE ───────────────────────────────────────────────────────
-async function generateProposal(isRegenerate = false) {
-  const jobPosting = document.getElementById('job-posting').value.trim();
-  if (!jobPosting) { alert('Please paste a job posting first.'); return; }
 
   if (!isPro() && proposalCount >= FREE_LIMIT) {
     showPaywall();
@@ -172,82 +139,151 @@ async function generateProposal(isRegenerate = false) {
   }
 
   lastJobPosting = jobPosting;
-  const profile = getProfile();
-
-  const generateBtn = document.getElementById('generate-btn');
-  generateBtn.disabled = true;
-  generateBtn.textContent = isRegenerate ? '🔄 Regenerating...' : '⏳ Generating...';
-
-  document.getElementById('output-section').classList.remove('hidden');
-  document.getElementById('proposal-text').innerHTML = '<p style="color:#94a3b8">Generating your proposal...</p>';
-  document.getElementById('tip-box').classList.add('hidden');
+  showLoading(true);
 
   try {
-    const result = await callBackend(jobPosting, selectedTone, profile, isRegenerate);
-
-    // Parse TIP from response
-    const tipMatch = result.match(/TIP:\s*(.+?)(?:\n|$)/i);
-    const tip = tipMatch ? tipMatch[1].trim() : null;
-    const proposalOnly = result.replace(/TIP:.*$/im, '').trim();
-
-    displayProposal(proposalOnly);
-
-    if (tip) {
-      document.getElementById('tip-text').textContent = tip;
-      document.getElementById('tip-box').classList.remove('hidden');
-    }
-
-    if (!isPro()) {
-      proposalCount++;
-      localStorage.setItem('propelai_count', proposalCount);
-      updateUsageDisplay();
-    }
-
+    const result = await callBackend(jobPosting, selectedTone, false);
+    displayProposal(result.proposal, result.tip);
+    incrementUsage();
   } catch (err) {
-    document.getElementById('proposal-text').innerHTML = `<p style="color:#ef4444">Error: ${err.message}</p>`;
+    showLoading(false);
+    alert(`Error: ${err.message}`);
   }
-
-  generateBtn.disabled = false;
-  generateBtn.textContent = '✨ Generate Proposal';
 }
 
-function displayProposal(text) {
-  const html = renderMarkdown(text);
-  document.getElementById('proposal-text').innerHTML = html;
+async function regenerate() {
+  if (!lastJobPosting) return;
+  showLoading(true);
+  try {
+    const result = await callBackend(lastJobPosting, selectedTone, true);
+    displayProposal(result.proposal, result.tip);
+  } catch (err) {
+    showLoading(false);
+    alert(`Error: ${err.message}`);
+  }
 }
 
-// ── BACKEND CALL ───────────────────────────────────────────────────
-async function callBackend(jobPosting, tone, profile, isRegenerate) {
+// ── BACKEND CALL ──────────────────────────────────────────────────
+async function callBackend(jobPosting, tone, isRegenerate = false) {
+  const profile = getProfile();
+
   const response = await fetch('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jobPosting, tone, profile, isRegenerate })
+    body: JSON.stringify({ jobPosting, tone, profile, isRegenerate }),
   });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || `Server error ${response.status}`);
-  }
 
   const data = await response.json();
-  return data.proposal;
+  if (!response.ok) throw new Error(data.error || 'Server error');
+  return data;
 }
 
-// ── COPY / EXPORT ──────────────────────────────────────────────────
+// ── UI HELPERS ────────────────────────────────────────────────────
+function showLoading(show) {
+  document.getElementById('emptyState').style.display     = 'none';
+  document.getElementById('loadingState').style.display   = show ? 'flex' : 'none';
+  document.getElementById('proposalOutput').style.display = 'none';
+  document.getElementById('outputActions').style.display  = 'none';
+  document.getElementById('tipBox').style.display         = 'none';
+  document.getElementById('generateBtn').disabled         = show;
+}
+
+// ── MARKDOWN RENDERER ─────────────────────────────────────────────
+function renderMarkdown(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, match => `<ol>${match}</ol>`)
+    .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/gs, match =>
+      match.includes('<ol>') ? match : `<ul>${match}</ul>`)
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(.+)$/, '<p>$1</p>');
+}
+
+function displayProposal(proposal, tip) {
+  document.getElementById('loadingState').style.display   = 'none';
+  document.getElementById('proposalOutput').style.display = 'block';
+  document.getElementById('outputActions').style.display  = 'flex';
+  document.getElementById('proposalText').innerHTML = renderMarkdown(proposal);
+
+  if (tip) {
+    document.getElementById('tipBox').style.display = 'block';
+    document.getElementById('tipText').innerText    = tip;
+  } else {
+    document.getElementById('tipBox').style.display = 'none';
+  }
+
+  document.getElementById('generateBtn').disabled = false;
+}
+
+// ── COPY & EXPORT ─────────────────────────────────────────────────
 function copyProposal() {
-  const text = stripMarkdown(document.getElementById('proposal-text').innerText);
+  const text = document.getElementById('proposalText').innerText;
   navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copy-btn');
-    btn.textContent = '✅ Copied!';
-    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+    const btn = document.querySelector('[onclick="copyProposal()"]');
+    const original = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = original, 1800);
   });
 }
 
-function exportProposal() {
-  const text = stripMarkdown(document.getElementById('proposal-text').innerText);
+function exportTxt() {
+  const text = document.getElementById('proposalText').innerText;
   const blob = new Blob([text], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'proposal.txt';
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `proposal-${Date.now()}.txt`;
   a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── FREEMIUM ──────────────────────────────────────────────────────
+function isPro() {
+  return isProUser;
+}
+
+function showPaywall() {
+  document.getElementById('stripeLink').href = LEMONSQUEEZY_LINK;
+  document.getElementById('paywallModal').classList.add('show');
+}
+
+function closePaywall() {
+  document.getElementById('paywallModal').classList.remove('show');
+}
+
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('paywallModal');
+  if (e.target === modal) closePaywall();
+});
+
+// ── USAGE COUNTER ─────────────────────────────────────────────────
+function incrementUsage() {
+  if (!isPro()) {
+    proposalCount++;
+    localStorage.setItem('propelai_count', proposalCount);
+  }
+  updateUsageBadge();
+  updatePlanStatus();
+}
+
+function updateUsageBadge() {
+  const badge = document.getElementById('usageBadge');
+  if (!badge) return;
+  const remaining = Math.max(0, FREE_LIMIT - proposalCount);
+  badge.innerHTML = isPro()
+    ? '✦ Pro — unlimited'
+    : `<span>${remaining}</span> free proposals left`;
+}
+
+// ── FLASH CONFIRM ─────────────────────────────────────────────────
+function flashConfirm(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
 }
