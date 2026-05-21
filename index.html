@@ -27,9 +27,6 @@
       <button class="nav-btn" data-view="profile" onclick="switchView('profile', this)">
         <span class="nav-icon">👤</span> My Profile
       </button>
-      <button class="nav-btn" data-view="settings" onclick="switchView('settings', this)">
-        <span class="nav-icon">🔑</span> API Key
-      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -158,24 +155,6 @@
 
         <button class="btn-primary slim" onclick="saveProfile()">Save Profile</button>
         <span class="save-confirm" id="saveConfirm">✓ Saved!</span>
-      </div>
-    </section>
-
-    <!-- ── VIEW: SETTINGS (API KEY) ── -->
-    <section class="view" id="view-settings">
-      <header class="view-header">
-        <h1>API Key</h1>
-        <p class="sub">Your Google Gemini API key powers the AI. It's stored locally in your browser only.</p>
-      </header>
-
-      <div class="form-card narrow">
-        <div class="form-group">
-          <label class="field-label">Anthropic API Key</label>
-          <input type="password" id="apiKeyInput" class="input" placeholder="AIza..." />
-          <p class="hint-block">Get your free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. No credit card needed. It is stored locally in your browser only.</p>
-        </div>
-        <button class="btn-primary slim" onclick="saveApiKey()">Save Key</button>
-        <span class="save-confirm" id="keyConfirm">✓ Saved!</span>
       </div>
     </section>
 

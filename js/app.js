@@ -4,12 +4,11 @@ let lastJobPosting = '';
 let proposalCount = parseInt(localStorage.getItem('propelai_count') || '0');
 const FREE_LIMIT = 3;
 // ⚠️ Replace this with your real Stripe Payment Link once you create it
-const STRIPE_LINK = 'https://propelaipro.lemonsqueezy.com/checkout/buy/9f94cfda-2ffb-4915-b1be-05437569af9f?media=0&logo=0&desc=0&discount=0';
+const STRIPE_LINK = 'https://buy.stripe.com/your_link_here';
 
 // ── INIT ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   loadProfile();
-  loadApiKey();
   updateUsageBadge();
   checkProfileAlert();
 
@@ -76,36 +75,12 @@ function checkProfileAlert() {
   }
 }
 
-// ── API KEY ───────────────────────────────────────────────────────
-function saveApiKey() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) return;
-  localStorage.setItem('propelai_apikey', key);
-  flashConfirm('keyConfirm');
-}
-
-function loadApiKey() {
-  const key = localStorage.getItem('propelai_apikey');
-  if (key) document.getElementById('apiKeyInput').value = key;
-}
-
-function getApiKey() {
-  return localStorage.getItem('propelai_apikey') || '';
-}
-
 // ── PROPOSAL GENERATION ───────────────────────────────────────────
 async function generateProposal() {
   const jobPosting = document.getElementById('jobPosting').value.trim();
 
   if (!jobPosting) {
     alert('Please paste a job posting first.');
-    return;
-  }
-
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    alert('Please add your Gemini API key under the API Key section.');
-    switchView('settings', null);
     return;
   }
 
@@ -119,7 +94,7 @@ async function generateProposal() {
   showLoading(true);
 
   try {
-    const result = await callGeminiAPI(apiKey, jobPosting, selectedTone);
+    const result = await callBackend(jobPosting, selectedTone, false);
     displayProposal(result.proposal, result.tip);
     incrementUsage();
   } catch (err) {
@@ -130,13 +105,9 @@ async function generateProposal() {
 
 async function regenerate() {
   if (!lastJobPosting) return;
-  const apiKey = getApiKey();
-  if (!apiKey) return;
-
   showLoading(true);
-
   try {
-    const result = await callGeminiAPI(apiKey, lastJobPosting, selectedTone, true);
+    const result = await callBackend(lastJobPosting, selectedTone, true);
     displayProposal(result.proposal, result.tip);
   } catch (err) {
     showLoading(false);
@@ -144,85 +115,19 @@ async function regenerate() {
   }
 }
 
-async function callGeminiAPI(apiKey, jobPosting, tone, isRegenerate = false) {
+// ── BACKEND CALL ──────────────────────────────────────────────────
+async function callBackend(jobPosting, tone, isRegenerate = false) {
   const profile = getProfile();
 
-  const profileContext = profile && profile.name
-    ? `
-Freelancer Profile:
-- Name: ${profile.name}
-- Niche/Industry: ${profile.niche || 'Not specified'}
-- Skills: ${profile.skills || 'Not specified'}
-- Experience: ${profile.experience || 'Not specified'}
-`
-    : 'No profile provided. Write a generic but compelling proposal.';
-
-  const prompt = `You are an expert freelance proposal writer. You write highly persuasive, personalized freelance proposals that win clients.
-
-Your proposals:
-- Open with a strong hook that shows you understand the client's problem
-- Briefly highlight relevant experience and skills (2-3 sentences max)
-- Outline a clear approach or solution (2-3 points)
-- End with a confident call to action
-- Are concise (250-350 words), ALWAYS complete, and never cut off mid-sentence
-- End with a clear closing line and call to action before the TIP
-- Sound human, confident, and specific
-
-After the proposal, you MUST add a new line starting with exactly "TIP:" followed by ONE short coaching tip (1 sentence) about how to make this specific proposal even stronger. This line is mandatory.
-
-Your response must follow this exact format with nothing else after the TIP line:
-[proposal text here]
-
-TIP: [one sentence tip here]
-
----
-
-${profileContext}
-
-Tone: ${tone}
-${isRegenerate ? '(Write a fresh variation, different from any previous version)' : ''}
-
-Job Posting:
-${jobPosting}
-
-Write the proposal now.`;
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 8192, temperature: 0.8 },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errData = await response.json();
-    throw new Error(errData.error?.message || `API error ${response.status}`);
-  }
+  const response = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobPosting, tone, profile, isRegenerate }),
+  });
 
   const data = await response.json();
-
-  // Gemini can return text split across multiple parts — join them all
-  const parts = data.candidates?.[0]?.content?.parts || [];
-  const fullText = parts.map(p => p.text || '').join('');
-
-  // Check if response was cut off
-  const finishReason = data.candidates?.[0]?.finishReason;
-  if (!fullText) throw new Error('No response from Gemini. Check your API key.');
-  if (finishReason === 'MAX_TOKENS') throw new Error('Response was cut off. Try a shorter job description.');
-
-  // Split proposal and tip — handle varied formatting from Gemini
-  const tipMatch = fullText.match(/(?:^|\n)\s*TIP:\s*(.+?)(?:\n|$)/is);
-  const tip = tipMatch ? tipMatch[1].trim() : null;
-  const proposal = tipMatch
-    ? fullText.slice(0, tipMatch.index).trim()
-    : fullText.trim();
-
-  return { proposal, tip };
+  if (!response.ok) throw new Error(data.error || 'Server error');
+  return data;
 }
 
 // ── UI HELPERS ────────────────────────────────────────────────────
