@@ -2,6 +2,9 @@
 let selectedTone = 'Professional';
 let lastJobPosting = '';
 let proposalCount = parseInt(localStorage.getItem('propelai_count') || '0');
+const FREE_LIMIT = 3;
+// ⚠️ Replace this with your real Stripe Payment Link once you create it
+const STRIPE_LINK = 'https://buy.stripe.com/your_link_here';
 
 // ── INIT ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -101,8 +104,14 @@ async function generateProposal() {
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    alert('Please add your Anthropic API key under the API Key section.');
+    alert('Please add your Gemini API key under the API Key section.');
     switchView('settings', null);
+    return;
+  }
+
+  // ── FREEMIUM CHECK ──
+  if (!isPro() && proposalCount >= FREE_LIMIT) {
+    showPaywall();
     return;
   }
 
@@ -290,6 +299,26 @@ function exportTxt() {
   URL.revokeObjectURL(url);
 }
 
+// ── FREEMIUM ──────────────────────────────────────────────────────
+function isPro() {
+  return localStorage.getItem('propelai_pro') === 'true';
+}
+
+function showPaywall() {
+  document.getElementById('stripeLink').href = STRIPE_LINK;
+  document.getElementById('paywallModal').classList.add('show');
+}
+
+function closePaywall() {
+  document.getElementById('paywallModal').classList.remove('show');
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('paywallModal');
+  if (e.target === modal) closePaywall();
+});
+
 // ── USAGE COUNTER ─────────────────────────────────────────────────
 function incrementUsage() {
   proposalCount++;
@@ -298,7 +327,20 @@ function incrementUsage() {
 }
 
 function updateUsageBadge() {
-  document.getElementById('usageCount').textContent = proposalCount;
+  const badge = document.getElementById('usageBadge');
+  const count = document.getElementById('usageCount');
+  if (isPro()) {
+    count.textContent = '∞';
+    badge.title = 'Pro — unlimited proposals';
+  } else {
+    const remaining = Math.max(0, FREE_LIMIT - proposalCount);
+    count.textContent = remaining;
+    badge.title = `${remaining} free proposals left`;
+    document.getElementById('usageCount').textContent = remaining;
+  }
+  // Update label text
+  badge.querySelector ? null : null;
+  badge.innerHTML = `<span id="usageCount">${isPro() ? '∞' : Math.max(0, FREE_LIMIT - proposalCount)}</span> ${isPro() ? 'Pro — unlimited' : 'free proposals left'}`;
 }
 
 // ── FLASH CONFIRM ─────────────────────────────────────────────────
