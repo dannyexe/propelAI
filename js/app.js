@@ -4,7 +4,7 @@ let lastJobPosting = '';
 let proposalCount = parseInt(localStorage.getItem('propelai_count') || '0');
 const FREE_LIMIT = 3;
 // ⚠️ Replace this with your real Stripe Payment Link once you create it
-const STRIPE_LINK = 'https://buy.stripe.com/your_link_here';
+const STRIPE_LINK = 'https://propelaipro.lemonsqueezy.com/checkout/buy/9f94cfda-2ffb-4915-b1be-05437569af9f?media=0&logo=0&desc=0&discount=0';
 
 // ── INIT ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
