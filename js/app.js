@@ -3,9 +3,8 @@ let selectedTone = 'Professional';
 let lastJobPosting = '';
 let proposalCount = parseInt(localStorage.getItem('propelai_count') || '0');
 const FREE_LIMIT = 3;
-const LEMONSQUEEZY_LINK = 'https://buy.stripe.com/your_link_here'; // ⚠️ Replace with your Lemon Squeezy link
-let userEmail = localStorage.getItem('propelai_email') || '';
-let isProUser = localStorage.getItem('propelai_pro') === 'true';
+// ⚠️ Replace this with your real Stripe Payment Link once you create it
+const STRIPE_LINK = 'https://buy.stripe.com/your_link_here';
 
 // ── INIT ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -13,15 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateUsageBadge();
   checkProfileAlert();
 
-  if (userEmail) {
-    const emailInput = document.getElementById('account-email');
-    if (emailInput) emailInput.value = userEmail;
-    verifyProStatus(userEmail, false);
-  }
-  updatePlanStatus();
-  const upgradeLink = document.getElementById('accountUpgradeLink');
-  if (upgradeLink) upgradeLink.href = LEMONSQUEEZY_LINK;
-
+  // Tone button listeners
   document.querySelectorAll('.tone-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
@@ -84,46 +75,6 @@ function checkProfileAlert() {
   }
 }
 
-// ── EMAIL & PRO VERIFICATION ──────────────────────────────────────
-async function saveEmail() {
-  const emailInput = document.getElementById('account-email');
-  const email = emailInput.value.trim();
-  if (!email || !email.includes('@')) {
-    alert('Please enter a valid email address.');
-    return;
-  }
-  userEmail = email;
-  localStorage.setItem('propelai_email', email);
-  await verifyProStatus(email, true);
-}
-
-async function verifyProStatus(email, showConfirm) {
-  try {
-    const res = await fetch('/api/check-pro', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    const data = await res.json();
-    isProUser = data.isPro;
-    localStorage.setItem('propelai_pro', isProUser ? 'true' : 'false');
-    updateUsageBadge();
-    updatePlanStatus();
-    if (showConfirm) flashConfirm('emailConfirm');
-  } catch (e) {
-    console.error('Could not verify pro status:', e);
-  }
-}
-
-function updatePlanStatus() {
-  const el = document.getElementById('plan-status');
-  if (!el) return;
-  el.textContent = isProUser
-    ? '✦ Pro — Unlimited proposals'
-    : `Free — ${Math.max(0, FREE_LIMIT - proposalCount)} proposals remaining`;
-  el.style.color = isProUser ? 'var(--accent)' : 'var(--muted)';
-}
-
 // ── PROPOSAL GENERATION ───────────────────────────────────────────
 async function generateProposal() {
   const jobPosting = document.getElementById('jobPosting').value.trim();
@@ -133,6 +84,7 @@ async function generateProposal() {
     return;
   }
 
+  // ── FREEMIUM CHECK ──
   if (!isPro() && proposalCount >= FREE_LIMIT) {
     showPaywall();
     return;
@@ -180,8 +132,8 @@ async function callBackend(jobPosting, tone, isRegenerate = false) {
 
 // ── UI HELPERS ────────────────────────────────────────────────────
 function showLoading(show) {
-  document.getElementById('emptyState').style.display     = 'none';
-  document.getElementById('loadingState').style.display   = show ? 'flex' : 'none';
+  document.getElementById('emptyState').style.display    = 'none';
+  document.getElementById('loadingState').style.display  = show ? 'flex' : 'none';
   document.getElementById('proposalOutput').style.display = 'none';
   document.getElementById('outputActions').style.display  = 'none';
   document.getElementById('tipBox').style.display         = 'none';
@@ -191,16 +143,24 @@ function showLoading(show) {
 // ── MARKDOWN RENDERER ─────────────────────────────────────────────
 function renderMarkdown(text) {
   return text
+    // Bold: **text** or __text__
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    // Italic: *text* or _text_
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Numbered lists: "1. " at start of line
     .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+    // Wrap consecutive <li> in <ol>
     .replace(/(<li>.*<\/li>\n?)+/gs, match => `<ol>${match}</ol>`)
+    // Bullet lists: "- " or "* " at start of line
     .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
     .replace(/(<li>.*<\/li>\n?)+/gs, match =>
       match.includes('<ol>') ? match : `<ul>${match}</ul>`)
+    // Line breaks: double newline = paragraph break
     .replace(/\n{2,}/g, '</p><p>')
+    // Single newline = line break
     .replace(/\n/g, '<br>')
+    // Wrap everything in a paragraph
     .replace(/^(.+)$/, '<p>$1</p>');
 }
 
@@ -208,13 +168,15 @@ function displayProposal(proposal, tip) {
   document.getElementById('loadingState').style.display   = 'none';
   document.getElementById('proposalOutput').style.display = 'block';
   document.getElementById('outputActions').style.display  = 'flex';
+
+  // Render markdown as HTML instead of raw text
   document.getElementById('proposalText').innerHTML = renderMarkdown(proposal);
 
   if (tip) {
-    document.getElementById('tipBox').style.display = 'block';
-    document.getElementById('tipText').innerText    = tip;
+    document.getElementById('tipBox').style.display  = 'block';
+    document.getElementById('tipText').innerText     = tip;
   } else {
-    document.getElementById('tipBox').style.display = 'none';
+    document.getElementById('tipBox').style.display  = 'none';
   }
 
   document.getElementById('generateBtn').disabled = false;
@@ -244,11 +206,11 @@ function exportTxt() {
 
 // ── FREEMIUM ──────────────────────────────────────────────────────
 function isPro() {
-  return isProUser;
+  return localStorage.getItem('propelai_pro') === 'true';
 }
 
 function showPaywall() {
-  document.getElementById('stripeLink').href = LEMONSQUEEZY_LINK;
+  document.getElementById('stripeLink').href = STRIPE_LINK;
   document.getElementById('paywallModal').classList.add('show');
 }
 
@@ -256,6 +218,7 @@ function closePaywall() {
   document.getElementById('paywallModal').classList.remove('show');
 }
 
+// Close modal when clicking outside
 document.addEventListener('click', (e) => {
   const modal = document.getElementById('paywallModal');
   if (e.target === modal) closePaywall();
@@ -263,27 +226,31 @@ document.addEventListener('click', (e) => {
 
 // ── USAGE COUNTER ─────────────────────────────────────────────────
 function incrementUsage() {
-  if (!isPro()) {
-    proposalCount++;
-    localStorage.setItem('propelai_count', proposalCount);
-  }
+  proposalCount++;
+  localStorage.setItem('propelai_count', proposalCount);
   updateUsageBadge();
-  updatePlanStatus();
 }
 
 function updateUsageBadge() {
   const badge = document.getElementById('usageBadge');
-  if (!badge) return;
-  const remaining = Math.max(0, FREE_LIMIT - proposalCount);
-  badge.innerHTML = isPro()
-    ? '✦ Pro — unlimited'
-    : `<span>${remaining}</span> free proposals left`;
+  const count = document.getElementById('usageCount');
+  if (isPro()) {
+    count.textContent = '∞';
+    badge.title = 'Pro — unlimited proposals';
+  } else {
+    const remaining = Math.max(0, FREE_LIMIT - proposalCount);
+    count.textContent = remaining;
+    badge.title = `${remaining} free proposals left`;
+    document.getElementById('usageCount').textContent = remaining;
+  }
+  // Update label text
+  badge.querySelector ? null : null;
+  badge.innerHTML = `<span id="usageCount">${isPro() ? '∞' : Math.max(0, FREE_LIMIT - proposalCount)}</span> ${isPro() ? 'Pro — unlimited' : 'free proposals left'}`;
 }
 
 // ── FLASH CONFIRM ─────────────────────────────────────────────────
 function flashConfirm(id) {
   const el = document.getElementById(id);
-  if (!el) return;
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2200);
 }

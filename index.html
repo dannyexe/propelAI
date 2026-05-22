@@ -27,9 +27,6 @@
       <button class="nav-btn" data-view="profile" onclick="switchView('profile', this)">
         <span class="nav-icon">👤</span> My Profile
       </button>
-      <button class="nav-btn" data-view="account" onclick="switchView('account', this)">
-        <span class="nav-icon">💳</span> Account
-      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -158,32 +155,6 @@
 
         <button class="btn-primary slim" onclick="saveProfile()">Save Profile</button>
         <span class="save-confirm" id="saveConfirm">✓ Saved!</span>
-      </div>
-    </section>
-
-    <!-- ── VIEW: ACCOUNT ── -->
-    <section class="view" id="view-account">
-      <header class="view-header">
-        <h1>Account</h1>
-        <p class="sub">Enter the email you used when upgrading to verify your Pro status.</p>
-      </header>
-
-      <div class="form-card narrow">
-        <div class="form-group">
-          <label class="field-label">Email Address</label>
-          <div style="display:flex; gap:10px; align-items:flex-start;">
-            <input type="email" id="account-email" class="input" placeholder="you@example.com" style="margin-bottom:0; flex:1;" />
-            <button class="btn-primary slim" onclick="saveEmail()" style="white-space:nowrap; margin-top:0;">Verify</button>
-          </div>
-          <p class="hint-block" style="margin-top:8px;">Use the same email from your Lemon Squeezy purchase.</p>
-          <span class="save-confirm" id="emailConfirm">✓ Status updated!</span>
-        </div>
-
-        <div style="border-top: 1px solid var(--border); padding-top: 24px; margin-top: 8px;">
-          <label class="field-label">Current Plan</label>
-          <p id="plan-status" style="font-size:13px; color:var(--muted); margin-bottom:16px;">Checking...</p>
-          <a class="btn-upgrade" id="accountUpgradeLink" href="#" target="_blank">Upgrade to Pro — $9/mo →</a>
-        </div>
       </div>
     </section>
 
