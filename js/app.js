@@ -5,7 +5,7 @@ let proposalCount = parseInt(localStorage.getItem('propelai_count') || '0');
 let userEmail = localStorage.getItem('propelai_email') || null;
 let userIsPro = false;
 const FREE_LIMIT = 3;
-const STRIPE_LINK = 'https://paystack.shop/pay/w16b54mmsw';
+const PAYSTACK_LINK = 'https://paystack.shop/pay/w16b54mmsw';
 
 // ── INIT ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -13,24 +13,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateUsageBadge();
   checkProfileAlert();
 
-  // Pre-fill email input if saved
+  // Pre-fill email if saved
   if (userEmail) {
-    const input = document.getElementById('emailInput');
-    if (input) input.value = userEmail;
-    await checkProStatus(userEmail);
+    document.getElementById('emailInput').value = userEmail;
+    await syncProStatus(userEmail);
     updateUsageBadge();
   }
 
-  // Check if user just returned from Paystack payment
+  // Handle return from Paystack
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('payment') === 'success') {
     window.history.replaceState({}, '', '/');
     setTimeout(() => {
-      alert('🎉 Payment successful! Enter your email below and click "Verify Pro" to unlock unlimited proposals.');
+      alert('🎉 Payment successful! Enter your payment email in the sidebar and click "Restore Pro" to unlock unlimited proposals.');
     }, 500);
   }
 
-  // Tone button listeners
+  // Tone buttons
   document.querySelectorAll('.tone-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
@@ -38,13 +37,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       selectedTone = btn.dataset.tone;
     });
   });
+
+  // Close paywall when clicking overlay
+  document.getElementById('paywallModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('paywallModal')) closePaywall();
+  });
 });
 
 // ── NAVIGATION ────────────────────────────────────────────────────
 function switchView(viewId, btnEl) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-
   document.getElementById(`view-${viewId}`).classList.add('active');
   if (btnEl) btnEl.classList.add('active');
   else {
@@ -85,11 +88,47 @@ function getProfile() {
 
 function checkProfileAlert() {
   const p = getProfile();
-  const alert = document.getElementById('profileAlert');
-  if (!p || !p.name || !p.skills) {
-    alert.style.display = 'block';
+  const alertEl = document.getElementById('profileAlert');
+  alertEl.style.display = (!p || !p.name || !p.skills) ? 'block' : 'none';
+}
+
+// ── PRO STATUS ────────────────────────────────────────────────────
+async function syncProStatus(email) {
+  try {
+    const res = await fetch('/api/check-pro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    userIsPro = data.isPro || false;
+    // Only use server count if higher than local (prevents reset exploits)
+    const serverCount = data.proposalCount || 0;
+    proposalCount = Math.max(proposalCount, serverCount);
+  } catch (err) {
+    console.error('Could not sync pro status:', err);
+  }
+}
+
+// ── EMAIL RESTORE ─────────────────────────────────────────────────
+async function handleEmailSave() {
+  const input = document.getElementById('emailInput');
+  const email = input.value.trim().toLowerCase();
+
+  if (!email || !email.includes('@')) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+
+  userEmail = email;
+  localStorage.setItem('propelai_email', email);
+  await syncProStatus(email);
+  updateUsageBadge();
+
+  if (userIsPro) {
+    alert('✅ Pro access restored! Enjoy unlimited proposals.');
   } else {
-    alert.style.display = 'none';
+    alert('No Pro subscription found for this email. If you just paid, please wait a moment and try again.');
   }
 }
 
@@ -102,14 +141,7 @@ async function generateProposal() {
     return;
   }
 
-  // ── REQUIRE EMAIL FIRST ──
-  if (!userEmail) {
-    alert('Please enter your email in the sidebar first and click "Verify Pro" to get started.');
-    document.getElementById('emailInput').focus();
-    return;
-  }
-
-  // ── FREEMIUM CHECK (server-side count) ──
+  // Check limit using localStorage count (simple & reliable)
   if (!userIsPro && proposalCount >= FREE_LIMIT) {
     showPaywall();
     return;
@@ -143,13 +175,11 @@ async function regenerate() {
 // ── BACKEND CALL ──────────────────────────────────────────────────
 async function callBackend(jobPosting, tone, isRegenerate = false) {
   const profile = getProfile();
-
   const response = await fetch('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ jobPosting, tone, profile, isRegenerate, email: userEmail }),
   });
-
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Server error');
   return data;
@@ -157,8 +187,8 @@ async function callBackend(jobPosting, tone, isRegenerate = false) {
 
 // ── UI HELPERS ────────────────────────────────────────────────────
 function showLoading(show) {
-  document.getElementById('emptyState').style.display    = 'none';
-  document.getElementById('loadingState').style.display  = show ? 'flex' : 'none';
+  document.getElementById('emptyState').style.display     = 'none';
+  document.getElementById('loadingState').style.display   = show ? 'flex' : 'none';
   document.getElementById('proposalOutput').style.display = 'none';
   document.getElementById('outputActions').style.display  = 'none';
   document.getElementById('tipBox').style.display         = 'none';
@@ -168,24 +198,16 @@ function showLoading(show) {
 // ── MARKDOWN RENDERER ─────────────────────────────────────────────
 function renderMarkdown(text) {
   return text
-    // Bold: **text** or __text__
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/__(.+?)__/g, '<strong>$1</strong>')
-    // Italic: *text* or _text_
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Numbered lists: "1. " at start of line
     .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
-    // Wrap consecutive <li> in <ol>
     .replace(/(<li>.*<\/li>\n?)+/gs, match => `<ol>${match}</ol>`)
-    // Bullet lists: "- " or "* " at start of line
     .replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>')
     .replace(/(<li>.*<\/li>\n?)+/gs, match =>
       match.includes('<ol>') ? match : `<ul>${match}</ul>`)
-    // Line breaks: double newline = paragraph break
     .replace(/\n{2,}/g, '</p><p>')
-    // Single newline = line break
     .replace(/\n/g, '<br>')
-    // Wrap everything in a paragraph
     .replace(/^(.+)$/, '<p>$1</p>');
 }
 
@@ -193,17 +215,13 @@ function displayProposal(proposal, tip) {
   document.getElementById('loadingState').style.display   = 'none';
   document.getElementById('proposalOutput').style.display = 'block';
   document.getElementById('outputActions').style.display  = 'flex';
-
-  // Render markdown as HTML instead of raw text
-  document.getElementById('proposalText').innerHTML = renderMarkdown(proposal);
-
+  document.getElementById('proposalText').innerHTML       = renderMarkdown(proposal);
   if (tip) {
     document.getElementById('tipBox').style.display  = 'block';
     document.getElementById('tipText').innerText     = tip;
   } else {
     document.getElementById('tipBox').style.display  = 'none';
   }
-
   document.getElementById('generateBtn').disabled = false;
 }
 
@@ -229,35 +247,9 @@ function exportTxt() {
   URL.revokeObjectURL(url);
 }
 
-// ── FREEMIUM ──────────────────────────────────────────────────────
-function isPro() {
-  return userIsPro;
-}
-
-async function checkProStatus(email) {
-  try {
-    const res = await fetch('/api/check-pro', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    userIsPro = data.isPro || false;
-    proposalCount = data.proposalCount || 0;
-    return data;
-  } catch (err) {
-    console.error('Could not check pro status:', err);
-    return { isPro: false, proposalCount: 0 };
-  }
-}
-
-function saveEmail(email) {
-  userEmail = email.toLowerCase();
-  localStorage.setItem('propelai_email', userEmail);
-}
-
+// ── PAYWALL ───────────────────────────────────────────────────────
 function upgradeNow() {
-  window.location.href = STRIPE_LINK;
+  window.location.href = PAYSTACK_LINK;
 }
 
 function showPaywall() {
@@ -268,54 +260,18 @@ function closePaywall() {
   document.getElementById('paywallModal').classList.remove('show');
 }
 
-// Close modal only when clicking the dark overlay directly
-document.addEventListener('DOMContentLoaded', () => {
-  const overlay = document.getElementById('paywallModal');
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closePaywall();
-  });
-});
-
-// ── USAGE COUNTER ─────────────────────────────────────────────────
+// ── USAGE ─────────────────────────────────────────────────────────
 function incrementUsage() {
   proposalCount++;
-  // Don't rely on localStorage — Supabase is updated by the backend
+  localStorage.setItem('propelai_count', proposalCount);
   updateUsageBadge();
 }
 
 function updateUsageBadge() {
-  const badge = document.getElementById('usageBadge');
-  const count = document.getElementById('usageCount');
-  if (isPro()) {
-    count.textContent = '∞';
-    badge.title = 'Pro — unlimited proposals';
-  } else {
-    const remaining = Math.max(0, FREE_LIMIT - proposalCount);
-    count.textContent = remaining;
-    badge.title = `${remaining} free proposals left`;
-    document.getElementById('usageCount').textContent = remaining;
-  }
-  // Update label text
-  badge.querySelector ? null : null;
-  badge.innerHTML = `<span id="usageCount">${isPro() ? '∞' : Math.max(0, FREE_LIMIT - proposalCount)}</span> ${isPro() ? 'Pro — unlimited' : 'free proposals left'}`;
-}
-
-async function handleEmailSave() {
-  const input = document.getElementById('emailInput');
-  const email = input.value.trim();
-  if (!email || !email.includes('@')) {
-    alert('Please enter a valid email address.');
-    return;
-  }
-  saveEmail(email);
-  const data = await checkProStatus(email);
-  updateUsageBadge();
-  if (userIsPro) {
-    alert('✅ Pro access confirmed! Enjoy unlimited proposals.');
-  } else {
-    const remaining = Math.max(0, FREE_LIMIT - proposalCount);
-    alert(`Free account confirmed. You have ${remaining} proposal${remaining !== 1 ? 's' : ''} remaining.`);
-  }
+  const remaining = userIsPro ? '∞' : Math.max(0, FREE_LIMIT - proposalCount);
+  const label = userIsPro ? 'Pro — unlimited' : 'free proposals left';
+  document.getElementById('usageBadge').innerHTML =
+    `<span id="usageCount">${remaining}</span> ${label}`;
 }
 
 // ── FLASH CONFIRM ─────────────────────────────────────────────────
