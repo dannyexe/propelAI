@@ -103,8 +103,20 @@ async function generateProposal() {
     return;
   }
 
-  // ── FREEMIUM CHECK ──
-  if (!isPro() && proposalCount >= FREE_LIMIT) {
+  // ── REQUIRE EMAIL FIRST ──
+  if (!userEmail) {
+    const email = prompt('Please enter your email to continue. This tracks your free proposals and Pro status:');
+    if (!email || !email.includes('@')) {
+      alert('A valid email is required to generate proposals.');
+      return;
+    }
+    saveEmail(email);
+    await checkProStatus(email);
+    updateUsageBadge();
+  }
+
+  // ── FREEMIUM CHECK (server-side count) ──
+  if (!userIsPro && proposalCount >= FREE_LIMIT) {
     showPaywall();
     return;
   }
@@ -238,8 +250,10 @@ async function checkProStatus(email) {
     const data = await res.json();
     userIsPro = data.isPro || false;
     proposalCount = data.proposalCount || 0;
+    return data;
   } catch (err) {
     console.error('Could not check pro status:', err);
+    return { isPro: false, proposalCount: 0 };
   }
 }
 
@@ -271,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── USAGE COUNTER ─────────────────────────────────────────────────
 function incrementUsage() {
   proposalCount++;
-  localStorage.setItem('propelai_count', proposalCount);
+  // Don't rely on localStorage — Supabase is updated by the backend
   updateUsageBadge();
 }
 
@@ -300,12 +314,13 @@ async function handleEmailSave() {
     return;
   }
   saveEmail(email);
-  await checkProStatus(email);
+  const data = await checkProStatus(email);
   updateUsageBadge();
   if (userIsPro) {
     alert('✅ Pro access confirmed! Enjoy unlimited proposals.');
   } else {
-    alert('No Pro subscription found for this email. Subscribe to unlock unlimited proposals.');
+    const remaining = Math.max(0, FREE_LIMIT - proposalCount);
+    alert(`Free account confirmed. You have ${remaining} proposal${remaining !== 1 ? 's' : ''} remaining.`);
   }
 }
 
