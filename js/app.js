@@ -13,6 +13,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateUsageBadge();
   checkProfileAlert();
 
+  // Check if user just returned from Paystack payment
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('payment') === 'success') {
+    // Clean the URL
+    window.history.replaceState({}, '', '/');
+    // Prompt user to verify their email
+    setTimeout(() => {
+      alert('🎉 Payment successful! Enter your email below and click "Verify Pro" to unlock unlimited proposals.');
+      switchView('generator', document.querySelector('[data-view="generator"]'));
+    }, 500);
+  }
+
   // Check pro status if email is saved
   if (userEmail) {
     await checkProStatus(userEmail);
