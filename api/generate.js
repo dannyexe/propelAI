@@ -1,16 +1,41 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
 export default async function handler(req, res) {
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Get Gemini key from Vercel environment variable (never exposed to users)
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'API key not configured on server.' });
   }
 
-  const { jobPosting, tone, profile, isRegenerate } = req.body;
+  const { jobPosting, tone, profile, isRegenerate, email } = req.body;
+
+  if (!jobPosting) {
+    return res.status(400).json({ error: 'Job posting is required.' });
+  }
+
+  // ── FREEMIUM CHECK (server-side) ──
+  if (email) {
+    const { data } = await supabase
+      .from('users')
+      .select('is_pro, proposal_count')
+      .eq('email', email.toLowerCase())
+      .single();
+
+    const isPro = data?.is_pro || false;
+    const count = data?.proposal_count || 0;
+
+    if (!isPro && count >= 3) {
+      return res.status(403).json({ error: 'Free limit reached. Please upgrade to Pro.' });
+    }
+  }
 
   if (!jobPosting) {
     return res.status(400).json({ error: 'Job posting is required.' });
@@ -91,6 +116,11 @@ Write the proposal now.`;
     const proposal = tipMatch
       ? fullText.slice(0, tipMatch.index).trim()
       : fullText.trim();
+
+    // Track usage in Supabase
+    if (email) {
+      await supabase.rpc('increment_proposal_count', { user_email: email.toLowerCase() });
+    }
 
     return res.status(200).json({ proposal, tip });
 
