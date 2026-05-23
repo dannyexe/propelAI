@@ -606,3 +606,38 @@ select.input option { background: var(--surface2); }
   color: var(--accent);
   margin-bottom: 8px;
 }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.3s ease;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.toast-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast-success {
+  background: #1a2e1a;
+  border: 1px solid #2ecc71;
+  color: #2ecc71;
+}
+
+.toast-error {
+  background: #2e1a1a;
+  border: 1px solid #e07060;
+  color: #e07060;
+}

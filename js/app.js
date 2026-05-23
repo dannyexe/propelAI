@@ -25,8 +25,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (urlParams.get('payment') === 'success') {
     window.history.replaceState({}, '', '/');
     setTimeout(() => {
-      alert('🎉 Payment successful! Enter your payment email in the sidebar and click "Restore Pro" to unlock unlimited proposals.');
-    }, 500);
+      showToast('🎉 Payment successful! Enter your email and click Restore Pro to unlock unlimited proposals.', 'success');
+    }, 800);
   }
 
   // Tone buttons
@@ -116,7 +116,7 @@ async function handleEmailSave() {
   const email = input.value.trim().toLowerCase();
 
   if (!email || !email.includes('@')) {
-    alert('Please enter a valid email address.');
+    showToast('Please enter a valid email address.', 'error');
     return;
   }
 
@@ -126,9 +126,9 @@ async function handleEmailSave() {
   updateUsageBadge();
 
   if (userIsPro) {
-    alert('✅ Pro access restored! Enjoy unlimited proposals.');
+    showToast('✅ Pro access restored! Enjoy unlimited proposals.', 'success');
   } else {
-    alert('No Pro subscription found for this email. If you just paid, please wait a moment and try again.');
+    showToast('No Pro subscription found. If you just paid, wait a moment and try again.', 'error');
   }
 }
 
@@ -272,6 +272,24 @@ function updateUsageBadge() {
   const label = userIsPro ? 'Pro — unlimited' : 'free proposals left';
   document.getElementById('usageBadge').innerHTML =
     `<span id="usageCount">${remaining}</span> ${label}`;
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(message, type = 'success') {
+  const existing = document.getElementById('toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'toast';
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.classList.add('toast-show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('toast-show');
+    setTimeout(() => toast.remove(), 400);
+  }, 3500);
 }
 
 // ── FLASH CONFIRM ─────────────────────────────────────────────────
