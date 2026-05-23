@@ -2,15 +2,22 @@
 let selectedTone = 'Professional';
 let lastJobPosting = '';
 let proposalCount = parseInt(localStorage.getItem('propelai_count') || '0');
+let userEmail = localStorage.getItem('propelai_email') || null;
+let userIsPro = false;
 const FREE_LIMIT = 3;
-// ⚠️ Replace this with your real Stripe Payment Link once you create it
-const STRIPE_LINK = 'https://buy.stripe.com/your_link_here';
+const STRIPE_LINK = 'https://propelaipro.lemonsqueezy.com/checkout/buy/9f94cfda-2ffb-4915-b1be-05437569af9f?media=0&logo=0&desc=0&discount=0';
 
 // ── INIT ───────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   loadProfile();
   updateUsageBadge();
   checkProfileAlert();
+
+  // Check pro status if email is saved
+  if (userEmail) {
+    await checkProStatus(userEmail);
+    updateUsageBadge();
+  }
 
   // Tone button listeners
   document.querySelectorAll('.tone-btn').forEach(btn => {
@@ -122,7 +129,7 @@ async function callBackend(jobPosting, tone, isRegenerate = false) {
   const response = await fetch('/api/generate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jobPosting, tone, profile, isRegenerate }),
+    body: JSON.stringify({ jobPosting, tone, profile, isRegenerate, email: userEmail }),
   });
 
   const data = await response.json();
@@ -206,7 +213,27 @@ function exportTxt() {
 
 // ── FREEMIUM ──────────────────────────────────────────────────────
 function isPro() {
-  return localStorage.getItem('propelai_pro') === 'true';
+  return userIsPro;
+}
+
+async function checkProStatus(email) {
+  try {
+    const res = await fetch('/api/check-pro', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+    userIsPro = data.isPro || false;
+    proposalCount = data.proposalCount || 0;
+  } catch (err) {
+    console.error('Could not check pro status:', err);
+  }
+}
+
+function saveEmail(email) {
+  userEmail = email.toLowerCase();
+  localStorage.setItem('propelai_email', userEmail);
 }
 
 function showPaywall() {
@@ -246,6 +273,23 @@ function updateUsageBadge() {
   // Update label text
   badge.querySelector ? null : null;
   badge.innerHTML = `<span id="usageCount">${isPro() ? '∞' : Math.max(0, FREE_LIMIT - proposalCount)}</span> ${isPro() ? 'Pro — unlimited' : 'free proposals left'}`;
+}
+
+async function handleEmailSave() {
+  const input = document.getElementById('emailInput');
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) {
+    alert('Please enter a valid email address.');
+    return;
+  }
+  saveEmail(email);
+  await checkProStatus(email);
+  updateUsageBadge();
+  if (userIsPro) {
+    alert('✅ Pro access confirmed! Enjoy unlimited proposals.');
+  } else {
+    alert('No Pro subscription found for this email. Subscribe to unlock unlimited proposals.');
+  }
 }
 
 // ── FLASH CONFIRM ─────────────────────────────────────────────────

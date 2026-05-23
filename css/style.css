@@ -534,3 +534,59 @@ select.input option { background: var(--surface2); }
   transition: color 0.15s;
 }
 .btn-modal-close:hover { color: var(--text); }
+
+/* ── EMAIL SECTION ── */
+.email-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.email-input {
+  font-size: 11.5px;
+  padding: 8px 10px;
+}
+
+.btn-email {
+  width: 100%;
+  padding: 8px;
+  background: rgba(201,168,76,0.15);
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-email:hover { background: rgba(201,168,76,0.25); }
+
+.email-hint {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── APP FOOTER ── */
+.app-footer {
+  position: fixed;
+  bottom: 0;
+  left: var(--sidebar-w);
+  right: 0;
+  padding: 10px 48px;
+  display: flex;
+  gap: 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  z-index: 10;
+}
+
+.app-footer a {
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.app-footer a:hover { color: var(--accent); }

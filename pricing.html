@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pricing — PropelAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f0f; --surface: #171717; --border: #2a2a2a;
+      --accent: #c9a84c; --accent2: #e8c87a; --text: #e8e4dc; --muted: #6b6760;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 48px; border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'Playfair Display', serif; font-size: 22px; color: var(--accent); text-decoration: none; }
+    .nav-link { color: var(--muted); text-decoration: none; font-size: 13px; }
+    .nav-link:hover { color: var(--text); }
+    main { max-width: 960px; margin: 0 auto; padding: 80px 24px; text-align: center; }
+    h1 { font-family: 'Playfair Display', serif; font-size: 42px; margin-bottom: 12px; }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 60px; }
+    .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 680px; margin: 0 auto; }
+    .plan { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 36px 30px; text-align: left; }
+    .plan.featured { border-color: var(--accent); }
+    .plan-badge { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 12px; }
+    .plan-name { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 8px; }
+    .plan-price { font-size: 40px; font-family: 'Playfair Display', serif; color: var(--accent); margin: 16px 0 4px; }
+    .plan-price span { font-size: 14px; color: var(--muted); font-family: 'DM Mono', monospace; }
+    .plan-desc { font-size: 12.5px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .plan-features li { font-size: 13px; display: flex; gap: 8px; }
+    .plan-features li::before { content: '✦'; color: var(--accent); }
+    .btn { display: block; width: 100%; padding: 13px; border-radius: 10px; font-family: 'DM Mono', monospace; font-size: 13px; text-align: center; text-decoration: none; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #0f0f0f; font-weight: 500; }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--text); }
+    footer { text-align: center; padding: 40px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+    footer a { color: var(--muted); text-decoration: none; margin: 0 12px; }
+    footer a:hover { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="logo">PropelAI</a>
+    <a href="/" class="nav-link">← Back to App</a>
+  </nav>
+
+  <main>
+    <h1>Simple, transparent pricing</h1>
+    <p class="sub">Start free. Upgrade when you're ready.</p>
+
+    <div class="plans">
+      <div class="plan">
+        <p class="plan-badge">Free</p>
+        <h2 class="plan-name">Starter</h2>
+        <div class="plan-price">$0 <span>/ forever</span></div>
+        <p class="plan-desc">Perfect for trying out PropelAI before committing.</p>
+        <ul class="plan-features">
+          <li>3 proposals per month</li>
+          <li>All 6 tone styles</li>
+          <li>AI coaching tips</li>
+          <li>Copy & export</li>
+        </ul>
+        <a href="/" class="btn btn-outline">Get Started Free</a>
+      </div>
+
+      <div class="plan featured">
+        <p class="plan-badge">Most Popular</p>
+        <h2 class="plan-name">Pro</h2>
+        <div class="plan-price">$9 <span>/ month</span></div>
+        <p class="plan-desc">For freelancers who send proposals regularly and want to win more clients.</p>
+        <ul class="plan-features">
+          <li>Unlimited proposals</li>
+          <li>All 6 tone styles</li>
+          <li>AI coaching tips</li>
+          <li>Copy & export tools</li>
+          <li>Priority generation</li>
+          <li>Cancel anytime</li>
+        </ul>
+        <a href="/" class="btn btn-primary">Upgrade to Pro</a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 PropelAI. All rights reserved.</p>
+    <p style="margin-top: 12px;">
+      <a href="/terms">Terms of Service</a>
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/refund">Refund Policy</a>
+    </p>
+  </footer>
+</body>
+</html>

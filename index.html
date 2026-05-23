@@ -30,8 +30,13 @@
     </nav>
 
     <div class="sidebar-footer">
+      <div class="email-section" id="emailSection">
+        <input type="email" id="emailInput" class="input email-input" placeholder="your@email.com" />
+        <button class="btn-email" onclick="handleEmailSave()">Verify Pro →</button>
+        <p class="email-hint">Enter email to restore Pro access</p>
+      </div>
       <div class="usage-badge" id="usageBadge">
-        <span id="usageCount">0</span> proposals generated
+        <span id="usageCount">0</span> free proposals left
       </div>
     </div>
   </aside>
@@ -179,5 +184,12 @@
   </div>
 
   <script src="js/app.js"></script>
+
+  <footer class="app-footer">
+    <a href="/pricing" target="_blank">Pricing</a>
+    <a href="/terms" target="_blank">Terms</a>
+    <a href="/privacy" target="_blank">Privacy</a>
+    <a href="/refund" target="_blank">Refund Policy</a>
+  </footer>
 </body>
 </html>
