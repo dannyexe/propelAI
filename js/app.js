@@ -13,22 +13,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateUsageBadge();
   checkProfileAlert();
 
+  // Pre-fill email input if saved
+  if (userEmail) {
+    const input = document.getElementById('emailInput');
+    if (input) input.value = userEmail;
+    await checkProStatus(userEmail);
+    updateUsageBadge();
+  }
+
   // Check if user just returned from Paystack payment
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('payment') === 'success') {
-    // Clean the URL
     window.history.replaceState({}, '', '/');
-    // Prompt user to verify their email
     setTimeout(() => {
       alert('🎉 Payment successful! Enter your email below and click "Verify Pro" to unlock unlimited proposals.');
-      switchView('generator', document.querySelector('[data-view="generator"]'));
     }, 500);
-  }
-
-  // Check pro status if email is saved
-  if (userEmail) {
-    await checkProStatus(userEmail);
-    updateUsageBadge();
   }
 
   // Tone button listeners
@@ -105,14 +104,9 @@ async function generateProposal() {
 
   // ── REQUIRE EMAIL FIRST ──
   if (!userEmail) {
-    const email = prompt('Please enter your email to continue. This tracks your free proposals and Pro status:');
-    if (!email || !email.includes('@')) {
-      alert('A valid email is required to generate proposals.');
-      return;
-    }
-    saveEmail(email);
-    await checkProStatus(email);
-    updateUsageBadge();
+    alert('Please enter your email in the sidebar first and click "Verify Pro" to get started.');
+    document.getElementById('emailInput').focus();
+    return;
   }
 
   // ── FREEMIUM CHECK (server-side count) ──

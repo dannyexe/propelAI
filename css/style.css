@@ -590,3 +590,19 @@ select.input option { background: var(--surface2); }
 }
 
 .app-footer a:hover { color: var(--accent); }
+
+/* ── EMAIL SECTION HIGHLIGHTED ── */
+.email-section {
+  background: rgba(201,168,76,0.05);
+  border: 1px solid rgba(201,168,76,0.15);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.email-section-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
