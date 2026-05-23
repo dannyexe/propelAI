@@ -248,8 +248,11 @@ function saveEmail(email) {
   localStorage.setItem('propelai_email', userEmail);
 }
 
+function upgradeNow() {
+  window.location.href = STRIPE_LINK;
+}
+
 function showPaywall() {
-  document.getElementById('stripeLink').href = STRIPE_LINK;
   document.getElementById('paywallModal').classList.add('show');
 }
 
@@ -257,10 +260,12 @@ function closePaywall() {
   document.getElementById('paywallModal').classList.remove('show');
 }
 
-// Close modal when clicking outside
-document.addEventListener('click', (e) => {
-  const modal = document.getElementById('paywallModal');
-  if (e.target === modal) closePaywall();
+// Close modal only when clicking the dark overlay directly
+document.addEventListener('DOMContentLoaded', () => {
+  const overlay = document.getElementById('paywallModal');
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closePaywall();
+  });
 });
 
 // ── USAGE COUNTER ─────────────────────────────────────────────────
