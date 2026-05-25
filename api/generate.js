@@ -81,14 +81,6 @@ ${isRegenerate ? '\n(Write a completely different variation)' : ''}
 
 Write the proposal now. Keep it under 200 words.`;
 
-Tone: ${tone || 'Professional'}
-${isRegenerate ? '(Write a fresh variation, different from any previous version)' : ''}
-
-Job Posting:
-${jobPosting}
-
-Write the proposal now.`;
-
   try {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
