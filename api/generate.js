@@ -52,27 +52,34 @@ Freelancer Profile:
 `
     : 'No profile provided. Write a generic but compelling proposal.';
 
-  const prompt = `You are an expert freelance proposal writer. You write highly persuasive, personalized freelance proposals that win clients.
+  const prompt = `You are a world-class freelance proposal writer. You write short, sharp, human proposals that win jobs.
 
-Your proposals:
-- Open with a strong hook that shows you understand the client's problem
-- Briefly highlight relevant experience and skills (2-3 sentences max)
-- Outline a clear approach or solution (2-3 points)
-- End with a confident call to action
-- Are concise (250-350 words), ALWAYS complete, and never cut off mid-sentence
-- End with a clear closing line and call to action before the TIP
-- Sound human, confident, and specific
+RULES:
+- Maximum 150-200 words. Shorter is better.
+- Never use hollow phrases like "I am the perfect candidate", "I am passionate", "I would love to", or "I am writing to apply"
+- Open with ONE sentence that proves you read and understood the job — reference something specific from the posting
+- One short paragraph showing the most relevant experience or skill — be specific, use numbers or real examples if available from the profile
+- 2-3 bullet points max showing exactly what you will deliver for THIS job
+- Close with one confident, direct sentence — no begging, no "I hope to hear from you"
+- Sound like a confident human professional, not an AI or a cover letter template
+- Tone: ${tone}
 
-After the proposal, you MUST add a new line starting with exactly "TIP:" followed by ONE short coaching tip (1 sentence) about how to make this specific proposal even stronger. This line is mandatory.
+After the proposal, you MUST write exactly "TIP:" followed by one sharp actionable tip specific to this job posting.
 
-Your response must follow this exact format with nothing else after the TIP line:
-[proposal text here]
+Format:
+[proposal here]
 
-TIP: [one sentence tip here]
+TIP: [one sentence tip]
 
 ---
 
 ${profileContext}
+
+Job Posting:
+${jobPosting}
+${isRegenerate ? '\n(Write a completely different variation)' : ''}
+
+Write the proposal now. Keep it under 200 words.`;
 
 Tone: ${tone || 'Professional'}
 ${isRegenerate ? '(Write a fresh variation, different from any previous version)' : ''}
