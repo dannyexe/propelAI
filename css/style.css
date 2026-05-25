@@ -690,14 +690,13 @@ select.input option { background: var(--surface2); }
     font-size: 12px;
   }
 
-  /* Email section compact */
+  /* Email section stacked properly */
   .sidebar-footer {
-    padding: 10px 16px;
+    padding: 12px 16px;
     border-top: 1px solid var(--border);
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .email-section {
@@ -705,26 +704,38 @@ select.input option { background: var(--surface2); }
     flex-direction: row;
     align-items: center;
     gap: 8px;
-    flex: 1;
     background: none;
     border: none;
     padding: 0;
+    width: 100%;
   }
 
-  .email-input { font-size: 12px; padding: 7px 10px; }
-  .btn-email { white-space: nowrap; padding: 7px 12px; font-size: 11px; }
+  .email-input {
+    font-size: 12px;
+    padding: 8px 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn-email {
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
   .email-hint { display: none; }
 
   .usage-badge {
     font-size: 11px;
     padding: 6px 10px;
-    white-space: nowrap;
+    text-align: center;
   }
 
   /* Main content full width */
   .main {
     height: auto;
-    padding: 20px 16px 80px;
+    padding: 20px 16px 40px;
     overflow: visible;
   }
 
@@ -745,12 +756,16 @@ select.input option { background: var(--surface2); }
   /* Output actions wrap */
   .output-actions { flex-wrap: wrap; }
 
-  /* Footer */
+  /* Footer NOT fixed on mobile — inline instead */
   .app-footer {
-    left: 0;
-    padding: 10px 16px;
+    position: relative;
+    left: auto;
+    bottom: auto;
+    padding: 16px;
     gap: 16px;
     flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 20px;
   }
 
   /* Form rows stack */
